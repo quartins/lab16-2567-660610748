@@ -100,30 +100,44 @@ export const PUT = async (request: NextRequest) => {
 };
 
 export const DELETE = async (request: NextRequest) => {
-  const studentId = request.nextUrl.searchParams.get("studentId");
-  const parseResult = zStudentDeleteBody.safeParse({
-    studentId,
-  });
-  if (parseResult.success === false) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message: parseResult.error.issues[0].message,
-      },
-      { status: 400 }
+    //get body and validate it
+    const body = await request.json();
+    console.log(body);
+    const parseResult = zStudentDeleteBody.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: parseResult.error.issues[0].message,
+        },
+        { status: 400 }
+      );
+    }
+  
+    //check if student id exist
+    const foundstudent= DB.students.findIndex(
+      (std) => std.studentId === body.studentId
     );
-  }
-  const student = DB.students.find((student) => student.studentId === studentId)
-  if(!student){
+    if (foundstudent === -1) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Student ID does not exist",
+        },
+        { status: 404 }
+      );
+    }
+  
+    //perform removing student from DB. You can choose from 2 choices
+    //1. use array filter method
+    // DB.students = DB.students.filter(...);
+  
+    //or 2. use splice array method
+    // DB.students.splice(...)
+    DB.students.splice(foundstudent, 1);
+  
     return NextResponse.json({
-      ok: false,
-      message: `Student Id does not exist`,
-    })
-  }
-  DB.students = DB.students.filter((student) => student.studentId !== studentId)
-
-  return NextResponse.json({
-    ok: true,
-    message: `Student Id ${studentId} has been deleted`,
-  });
-};
+      ok: true,
+      message:  `Student Id ${body.studentId} has been deleted`,
+    });
+  };
